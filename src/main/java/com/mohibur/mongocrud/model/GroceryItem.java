@@ -9,7 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @ToString
 @RequiredArgsConstructor
 @Document
-public class GroceryItem {
+public class GroceryItem extends BaseModel {
     @Id
     private String id;
     private String name;
