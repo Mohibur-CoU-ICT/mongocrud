@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/groceryItem")
@@ -57,6 +59,19 @@ public class GroceryItemController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteGroceryItem(@PathVariable("id") String id) {
         return groceryItemService.deleteGroceryItem(id);
+    }
+
+    // async method to test insertion of many items at a time
+    @PostMapping("/dummy/createMany")
+    public ResponseEntity<String> addRandomGroceryItems(@RequestParam Integer count) throws ExecutionException, InterruptedException {
+        System.out.println("count = " + count);
+        CompletableFuture<String> future = groceryItemService.addRandomGroceryItems(count);
+        return ResponseEntity.ok(future.get());
+    }
+
+    @GetMapping("/testDummyFruits")
+    public ResponseEntity<List<?>> testFruits() {
+        return groceryItemService.sortFruits();
     }
 
 }

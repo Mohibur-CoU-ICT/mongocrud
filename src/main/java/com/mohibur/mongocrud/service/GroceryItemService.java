@@ -1,6 +1,7 @@
 package com.mohibur.mongocrud.service;
 
 import com.mohibur.mongocrud.dto.GroceryItemDto;
+import com.mohibur.mongocrud.model.Fruit;
 import com.mohibur.mongocrud.model.GroceryItem;
 import com.mohibur.mongocrud.repository.GroceryItemRepository;
 import org.slf4j.Logger;
@@ -8,14 +9,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @EnableScheduling
@@ -27,7 +30,7 @@ public class GroceryItemService {
     GroceryItemRepository groceryItemRepository;
 
     // scheduler
-    @Scheduled(cron = "@hourly")
+//    @Scheduled(cron = "@hourly")
 //    @Scheduled(cron = "${cron.delay}")
     public void runScheduler() {
         logger.info("Saving scheduled data");
@@ -39,8 +42,6 @@ public class GroceryItemService {
     public ResponseEntity<GroceryItem> addGroceryItem(GroceryItemDto groceryItemDto) {
         GroceryItem groceryItem = new GroceryItem();
         BeanUtils.copyProperties(groceryItemDto, groceryItem);
-//        groceryItem.setCreatedAt(LocalDateTime.now());
-//        groceryItem.setUpdateAt(LocalDateTime.now());
         groceryItem = groceryItemRepository.save(groceryItem);
         return ResponseEntity.ok(groceryItem);
     }
@@ -112,4 +113,41 @@ public class GroceryItemService {
         }
     }
 
+    @Async
+    public CompletableFuture<String> addRandomGroceryItems(Integer count) {
+        if (count > 1e5) {
+            throw new RuntimeException("Count value should be less than or equal to 100000.");
+        }
+        try {
+            List<Fruit> fruits = Fruit.getFruits();
+            for (int i = 0; i < count; i++) {
+                Random random = new Random();
+                int index = random.nextInt(fruits.size());
+                Fruit fruit1 = fruits.get(index);
+                GroceryItem groceryItem = new GroceryItem();
+                groceryItem.setName(fruit1.getName());
+                groceryItem.setCategory(fruit1.getCategory());
+                groceryItem.setQuantity(index);
+                groceryItemRepository.save(groceryItem);
+            }
+            return CompletableFuture.completedFuture(count + " random grocery items added.");
+        } catch (Exception e) {
+            return CompletableFuture.completedFuture(e.getMessage());
+        }
+    }
+
+    public ResponseEntity<List<?>> sortFruits() {
+        Fruit fruit = new Fruit();
+        List<Fruit> fruits = Fruit.getFruits();
+        fruits.sort((f1, f2) -> {
+            int nameComparison = f1.getName().compareTo(f2.getName());
+            if (nameComparison != 0) {
+                return nameComparison;
+            } else {
+                return f1.getCategory().compareTo(f2.getCategory());
+            }
+        });
+//        fruits.forEach(fruit1 -> System.out.println("new Fruit(\"" + fruit1.getName() + "\", \"" + fruit1.getCategory() + "\"),"));
+        return ResponseEntity.ok(fruits);
+    }
 }
